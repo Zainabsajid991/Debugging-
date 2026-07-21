@@ -1,0 +1,184 @@
+{
+  "name": "Inventory Order Processing",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "order",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Order Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        112
+      ],
+      "id": "fcf22dac-270b-45c2-8d53-09e55ad6d388",
+      "webhookId": "50dc2a7a-f4e3-42fc-b096-d519b5118c19"
+    },
+    {
+      "parameters": {
+        "url": "=https://httpbin.org/get?sku={{$json.body.sku}}",
+        "options": {}
+      },
+      "name": "Get Inventory",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        112
+      ],
+      "id": "661674ca-0a93-481e-9c92-3d1e35bb0d41"
+    },
+    {
+      "parameters": {
+        "functionCode": "const stock = 10;\n\nreturn items.map(item => {\n  const quantity = Number($node[\"Order Webhook\"].json.body.quantity);\n\n  return {\n    json: {\n      ...item.json,\n      quantity,\n      stockAvailable: quantity <= stock\n    }\n  };\n});"
+      },
+      "name": "Check Inventory Function",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        112
+      ],
+      "id": "e4cb96bc-680a-4ba7-8c4f-5fd0c2adfe31"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.stockAvailable}}",
+              "value2": true
+            }
+          ],
+          "string": []
+        }
+      },
+      "name": "If Stock Available",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        112
+      ],
+      "id": "686b8b41-a871-4f6b-9ad4-a2b6b69cc251"
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://httpbin.org/post",
+        "options": {},
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "orderId",
+              "value": "={{$json.orderId}}"
+            },
+            {
+              "name": "sku",
+              "value": "={{$json.sku}}"
+            },
+            {
+              "name": "quantity",
+              "value": "={{$json.quantity}}"
+            }
+          ]
+        }
+      },
+      "name": "Post Order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "90937b5b-593c-4ac2-aaa3-3ba28314c2e5"
+    },
+    {
+      "parameters": {
+        "errorMessage": "Out of stock - Order cannot be fulfilled"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        208
+      ],
+      "id": "dbb9ddad-d385-4cc5-af15-0435d9a730a5",
+      "name": "Stop and Error"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Order Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Inventory": {
+      "main": [
+        [
+          {
+            "node": "Check Inventory Function",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Inventory Function": {
+      "main": [
+        [
+          {
+            "node": "If Stock Available",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Stock Available": {
+      "main": [
+        [
+          {
+            "node": "Post Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "hUjoDBIpIR05pjTY",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "95c62037-a6c8-488f-a894-13ee8ef0c11e",
+  "meta": {
+    "instanceId": "ffe3646068ac68e067da542486b60cc283b4d1b9b36897ba201c221831b543ad"
+  },
+  "nodeGroups": [],
+  "id": "hAGraEObKRJDxQDP",
+  "tags": []
+}
